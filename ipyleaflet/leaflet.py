@@ -21,8 +21,8 @@ from ipywidgets.widgets.trait_types import InstanceDict
 from ipywidgets.embed import embed_minimal_html
 
 from traitlets import (
-    CFloat, Float, Unicode, Int, Tuple, List, Instance, Bool, Dict, Enum,
-    link, observe, default, validate, TraitError, Union, Any
+    Callable, CFloat, Float, Unicode, Int, Tuple, List, Instance, Bool,
+    Dict, Enum, link, observe, default, validate, TraitError, Union, Any,
 )
 from ._version import EXTENSION_VERSION
 
@@ -668,6 +668,28 @@ class LocalTileLayer(TileLayer):
     _model_name = Unicode('LeafletLocalTileLayerModel').tag(sync=True)
 
     path = Unicode('').tag(sync=True)
+
+
+class BinaryTileLayer(TileLayer):
+    """TileBinaryLayer class."""
+    def __init__(self, **kwargs):
+        super(BinaryTileLayer, self).__init__(**kwargs)
+        self.on_msg(self._handle_msg)
+
+    _view_name = Unicode('LeafletBinaryTileLayerView').tag(sync=True)
+    _model_name = Unicode('LeafletBinaryTileLayerModel').tag(sync=True)
+
+    _tiles = Dict({}).tag(sync=True)
+
+    create_tile = Callable(allow_none=False).tag(sync=False)
+
+
+    def _handle_msg(self, _, content, buffers):
+        if content.get('event', '') != 'tile_request':
+            return
+        coords = content.get('coords')
+        key = '{},{},{}'.format(coords)
+        self._tiles[key] = self.create_tile(*self._current_tile_coords)
 
 
 class WMSLayer(TileLayer):
